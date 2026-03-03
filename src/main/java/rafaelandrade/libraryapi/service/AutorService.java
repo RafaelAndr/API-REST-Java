@@ -1,6 +1,8 @@
 package rafaelandrade.libraryapi.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.stereotype.Service;
 import rafaelandrade.libraryapi.exceptions.OperacaoNaoPermitidaExceptions;
 import rafaelandrade.libraryapi.model.Autor;
@@ -58,6 +60,22 @@ public class AutorService {
         }
 
         return repository.findAll();
+    }
+
+    public List<Autor> pesquisaByExample(String nome, String nacionalidade){
+        var autor = new Autor();
+        autor.setNome(nome);
+        autor.setNacionalidade(nacionalidade);
+
+        ExampleMatcher matcher = ExampleMatcher
+                .matching()
+                .withIgnorePaths("id")
+                .withIgnoreNullValues()
+                .withIgnoreCase()
+                .withStringMatcher(ExampleMatcher.StringMatcher.CONTAINING);
+
+        Example<Autor> autorExample = Example.of(autor, matcher);
+        return repository.findAll(autorExample);
     }
 
     public boolean possuiLivro(Autor autor){

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import rafaelandrade.libraryapi.controller.dto.AutorDto;
 import rafaelandrade.libraryapi.controller.dto.ErroResposta;
+import rafaelandrade.libraryapi.controller.mappers.AutorMapper;
 import rafaelandrade.libraryapi.exceptions.OperacaoNaoPermitidaExceptions;
 import rafaelandrade.libraryapi.exceptions.RegistroDuplicadoExceptions;
 import rafaelandrade.libraryapi.model.Autor;
@@ -25,17 +26,20 @@ import java.util.stream.Collectors;
 public class AutorController {
 
     private final AutorService service;
+    private final AutorMapper mapper;
 
     @PostMapping
-    public ResponseEntity<Object> salvar(@RequestBody @Valid AutorDto autor){
+    public ResponseEntity<Object> salvar(@RequestBody @Valid AutorDto dto){
         try {
-            Autor autorEntidade = autor.mapearParaAutor();
-            service.salvar(autorEntidade);
+//            Autor autorEntidade = autor.mapearParaAutor();
+            Autor autor = mapper.toEntity(dto);
+            service.salvar(autor);
 
+            //http://localhost:8080/autores/id
             URI location = ServletUriComponentsBuilder
                     .fromCurrentRequest()
                     .path("/{id}")
-                    .buildAndExpand(autorEntidade.getId())
+                    .buildAndExpand(autor.getId())
                     .toUri();
 
             return ResponseEntity.created(location).build();
@@ -49,14 +53,21 @@ public class AutorController {
     @GetMapping("{id}")
     public ResponseEntity<AutorDto> obterDetales(@PathVariable("id") String id){
         var idAutor = UUID.fromString(id);
-        Optional<Autor> autorOptional = service.obterPorId(idAutor);
+//      Optional<Autor> autorOptional = service.obterPorId(idAutor);
 
-        if (autorOptional.isPresent()){
-            Autor autor = autorOptional.get();
-            AutorDto dto = new AutorDto(autor.getId(), autor.getNome(), autor.getDataNascimento(), autor.getNacionalidade());
-            return ResponseEntity.ok(dto);
-        }
-        return ResponseEntity.notFound().build();
+        return service
+                .obterPorId(idAutor)
+                .map(autor -> {
+                    AutorDto dto = mapper.toDto(autor);
+                    return ResponseEntity.ok(dto);
+                }).orElseGet(() -> ResponseEntity.notFound().build());
+
+//        if (autorOptional.isPresent()){
+//            Autor autor = autorOptional.get();
+//            AutorDto dto = new AutorDto(autor.getId(), autor.getNome(), autor.getDataNascimento(), autor.getNacionalidade());
+//            return ResponseEntity.ok(dto);
+//        }
+//        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping({"{id}"})
@@ -82,15 +93,20 @@ public class AutorController {
             @RequestParam(value = "nome", required = false) String nome,
             @RequestParam(value = "nacionalidade", required = false) String nacionalidade
     ){
-        List<Autor> resultado = service.pesquisa(nome, nacionalidade);
+        List<Autor> resultado = service.pesquisaByExample(nome, nacionalidade);
+//        List<AutorDto> lista = resultado.
+//                stream().
+//                map(autor -> new AutorDto(
+//                        autor.getId(),
+//                        autor.getNome(),
+//                        autor.getDataNascimento(),
+//                        autor.getNacionalidade())
+//                ).collect(Collectors.toList());
+
         List<AutorDto> lista = resultado.
-                stream().
-                map(autor -> new AutorDto(
-                        autor.getId(),
-                        autor.getNome(),
-                        autor.getDataNascimento(),
-                        autor.getNacionalidade())
-                ).collect(Collectors.toList());
+                stream()
+                .map(mapper::toDto)
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(lista);
     }
@@ -98,7 +114,7 @@ public class AutorController {
     @PutMapping("{id}")
     public ResponseEntity<Object> atualizar(
             @PathVariable String id,
-            @RequestBody AutorDto dto){
+            @RequestBody @Valid AutorDto dto){
         try {
             var idAutor = UUID.fromString(id);
             Optional<Autor> autorOptional = service.obterPorId(idAutor);

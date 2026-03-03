@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import jakarta.persistence.criteria.Fetch;
 import lombok.Data;
 import lombok.ToString;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,6 +17,7 @@ import java.util.UUID;
 @Data
 @Table(name = "livro", schema = "public")
 @ToString(exclude = "autor")
+@EntityListeners(AuditingEntityListener.class)
 public class Livro {
 
     @Id
@@ -40,4 +44,15 @@ public class Livro {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_autor")
     private Autor autor;
+
+    @CreatedDate
+    @Column(name = "data_cadastro")
+    private LocalDate dataCadastro;
+
+    @LastModifiedDate
+    @Column(name = "data_atualizacao")
+    private LocalDate dataAtualizacao;
+
+    @Column(name = "id_usuario")
+    private UUID idUsuario;
 }
